@@ -1,7 +1,7 @@
 from html2image import Html2Image
 from src.config import DATA_DIR, LESSON_TIMES
 
-hti = Html2Image(output_path=str(DATA_DIR), size=(1380, 780))
+hti = Html2Image(output_path=str(DATA_DIR), size=(1280, 720))
 
 HTML_TEMPLATE = """
 <!DOCTYPE html>
@@ -9,92 +9,134 @@ HTML_TEMPLATE = """
 <head>
 <meta charset="utf-8">
 <style>
-    * {{ box-sizing: border-box; }}
-    body {{
+    * {{ 
+        box-sizing: border-box; 
+    }}
+
+    /* Тёмная тема (по умолчанию) */
+    :root {{
+        --bg-color: #0c131d;
+        --header-bg: #121d2b;
+        --border-color: #1e2c3d;
+        --text-main: #f8fafc;
+        --text-muted: #94a3b8;
+        --text-time: #64748b;
+        --text-cell: #f1f5f9;
+        --accent: #38bdf8;
+    }}
+
+    /* Светлая тема */
+    body.light {{
+        --bg-color: #f8fafc;
+        --header-bg: #e2e8f0;
+        --border-color: #cbd5e1;
+        --text-main: #0f172a;
+        --text-muted: #475569;
+        --text-time: #64748b;
+        --text-cell: #1e293b;
+        --accent: #0284c7;
+    }}
+
+    html, body {{
         margin: 0;
-        padding: 16px;
-        background-color: #0c131d;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-        color: #ffffff;
+        padding: 14px 18px;
+        background-color: var(--bg-color);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        color: var(--text-main);
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
     }}
     .header {{
         display: flex;
         justify-content: space-between;
         align-items: center;
-        font-size: 19px;
-        font-weight: 600;
-        margin-bottom: 12px;
+        font-size: 20px;
+        font-weight: 700;
+        margin-bottom: 10px;
         padding: 0 4px;
+        height: 32px;
     }}
     .bot-name {{
-        color: #64748b;
-        font-weight: 400;
+        color: var(--text-muted);
+        font-weight: 500;
         font-size: 16px;
     }}
     table {{
         width: 100%;
+        height: calc(100% - 42px);
         border-collapse: collapse;
         table-layout: fixed;
     }}
     th, td {{
-        border: 1px solid #1e2c3d;
+        border: 1px solid var(--border-color);
         text-align: center;
-        padding: 6px 4px;
         vertical-align: middle;
+        padding: 4px 6px;
     }}
     th {{
-        background-color: #121d2b;
-        color: #94a3b8;
-        font-weight: 500;
-        font-size: 13px;
+        background-color: var(--header-bg);
+        color: var(--text-muted);
+        font-size: 14px;
+        font-weight: 600;
+        height: 48px;
     }}
     th span {{
         display: block;
         font-size: 11px;
-        color: #64748b;
+        font-weight: normal;
+        color: var(--text-time);
         margin-top: 2px;
     }}
     .day-col {{
-        width: 65px;
-        font-weight: bold;
-        background-color: #121d2b;
-        font-size: 15px;
-        color: #f1f5f9;
+        width: 72px;
+        font-weight: 700;
+        background-color: var(--header-bg);
+        font-size: 17px;
+        color: var(--text-main);
     }}
     .day-date {{
-        font-size: 11px;
+        font-size: 12px;
         font-weight: normal;
-        color: #94a3b8;
+        color: var(--text-muted);
         display: block;
         margin-top: 4px;
     }}
     .cell-content {{
-        font-size: 11px;
-        line-height: 1.25;
-        color: #e2e8f0;
+        font-size: 12.5px;
+        line-height: 1.35;
+        color: var(--text-cell);
         word-wrap: break-word;
         white-space: pre-wrap;
+        font-weight: 500;
     }}
 </style>
 </head>
-<body>
+<body class="{theme_class}">
     <div class="header">
-        <div>Расписание: <span style="color: #38bdf8;">{group}</span></div>
+        <div>Расписание: <span style="color: var(--accent);">{group}</span></div>
         <div class="bot-name">Расписание занятий</div>
         <div>{date_range} &nbsp;|&nbsp; Неделя {week_num}</div>
     </div>
     <table>
-        <tr>
-            <th class="day-col">Пара<br><span style="color:#64748b">Время</span></th>
-            {header_cols}
-        </tr>
-        {table_rows}
+        <thead>
+            <tr>
+                <th class="day-col">Пара<br><span style="color: var(--text-time)">Время</span></th>
+                {header_cols}
+            </tr>
+        </thead>
+        <tbody>
+            {table_rows}
+        </tbody>
     </table>
 </body>
 </html>
 """
 
-def render_schedule_image(group_name: str, week_num: int, days_data, date_range: str, dates_list: list) -> str:
+
+def render_schedule_image(group_name: str, week_num: int, days_data, date_range: str, dates_list: list,
+                          theme: str = "dark") -> str:
     header_cols = "".join([f"<th>{num}<span>{time}</span></th>" for num, time in LESSON_TIMES])
 
     rows_html = ""
@@ -108,7 +150,10 @@ def render_schedule_image(group_name: str, week_num: int, days_data, date_range:
 
         rows_html += f"<tr>{cells}</tr>"
 
+    theme_class = "light" if theme == "light" else "dark"
+
     html = HTML_TEMPLATE.format(
+        theme_class=theme_class,
         group=group_name,
         date_range=date_range,
         week_num=week_num,
@@ -117,6 +162,7 @@ def render_schedule_image(group_name: str, week_num: int, days_data, date_range:
     )
 
     clean_group = group_name.replace("/", "_")
-    filename = f"schedule_{clean_group}_{week_num}.png"
+    filename = f"schedule_{clean_group}_{week_num}_{theme}.png"
+
     hti.screenshot(html_str=html, save_as=filename)
     return str(DATA_DIR / filename)

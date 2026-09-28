@@ -1,18 +1,31 @@
 import openpyxl
 from src.config import EXCEL_PATH, DAYS_CONFIG
 
+def clean_dummy_markers(text: str) -> str:
+    """Убирает одиночные крестики (x / х), прочерки и точки, превращая их в пустое окно"""
+    if not text:
+        return ""
+    cleaned = text.strip()
+    # Убираем русский 'х', английский 'x', тире, прочерки и точки
+    if cleaned.lower() in ["x", "х", "-", "—", ".", "окно", "нет"]:
+        return ""
+    return cleaned
+
 def get_cell_value(sheet, row: int, col: int) -> str:
+    """Считывает текст ячейки с учетом объединения и очищает от крестиков-заглушек"""
     val = sheet.cell(row=row, column=col).value
     if val is not None:
-        return str(val).strip()
+        return clean_dummy_markers(str(val))
 
+    # Если ячейка объединена с соседней
     for rng in sheet.merged_cells.ranges:
         if rng.min_row <= row <= rng.max_row and rng.min_col <= col <= rng.max_col:
             top_val = sheet.cell(row=rng.min_row, column=rng.min_col).value
-            return str(top_val).strip() if top_val is not None else ""
+            return clean_dummy_markers(str(top_val)) if top_val is not None else ""
     return ""
 
 def get_available_groups() -> list[str]:
+    """Считывает список всех доступных групп из первой строки"""
     if not EXCEL_PATH.exists():
         return []
     wb = openpyxl.load_workbook(EXCEL_PATH, data_only=True)
@@ -27,6 +40,7 @@ def get_available_groups() -> list[str]:
     return groups
 
 def parse_week_schedule(group_name: str, week_num: int):
+    """Парсит расписание на выбранную неделю"""
     if not EXCEL_PATH.exists():
         return None
 
