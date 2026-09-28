@@ -13,7 +13,6 @@ HTML_TEMPLATE = """
         box-sizing: border-box; 
     }}
 
-    /* Тёмная тема (по умолчанию) */
     :root {{
         --bg-color: #0c131d;
         --header-bg: #121d2b;
@@ -23,9 +22,10 @@ HTML_TEMPLATE = """
         --text-time: #64748b;
         --text-cell: #f1f5f9;
         --accent: #38bdf8;
+        --badge-bg: rgba(56, 189, 248, 0.15);
+        --badge-border: rgba(56, 189, 248, 0.35);
     }}
 
-    /* Светлая тема */
     body.light {{
         --bg-color: #f8fafc;
         --header-bg: #e2e8f0;
@@ -35,6 +35,8 @@ HTML_TEMPLATE = """
         --text-time: #64748b;
         --text-cell: #1e293b;
         --accent: #0284c7;
+        --badge-bg: rgba(2, 132, 199, 0.12);
+        --badge-border: rgba(2, 132, 199, 0.3);
     }}
 
     html, body {{
@@ -90,7 +92,7 @@ HTML_TEMPLATE = """
         margin-top: 2px;
     }}
     .day-col {{
-        width: 72px;
+        width: 78px;
         font-weight: 700;
         background-color: var(--header-bg);
         font-size: 17px;
@@ -101,7 +103,19 @@ HTML_TEMPLATE = """
         font-weight: normal;
         color: var(--text-muted);
         display: block;
+        margin-top: 2px;
+    }}
+    .day-badge {{
+        display: inline-block;
+        font-size: 10px;
+        font-weight: 600;
+        color: var(--accent);
+        background-color: var(--badge-bg);
+        border: 1px solid var(--badge-border);
+        border-radius: 4px;
+        padding: 2px 5px;
         margin-top: 4px;
+        line-height: 1.1;
     }}
     .cell-content {{
         font-size: 12.5px;
@@ -142,7 +156,10 @@ def render_schedule_image(group_name: str, week_num: int, days_data, date_range:
     rows_html = ""
     for i, day in enumerate(days_data):
         d_date = dates_list[i] if i < len(dates_list) else ""
-        cells = f"<td class='day-col'>{day['name']}<span class='day-date'>{d_date}</span></td>"
+
+        # Плашка "Лекции" под датой
+        badge_html = f"<span class='day-badge'>{day['note']}</span>" if day.get("note") else ""
+        cells = f"<td class='day-col'>{day['name']}<span class='day-date'>{d_date}</span>{badge_html}</td>"
 
         for p, _ in LESSON_TIMES:
             text = day["pairs"].get(p, "")

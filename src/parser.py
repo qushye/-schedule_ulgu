@@ -6,7 +6,6 @@ def clean_dummy_markers(text: str) -> str:
     if not text:
         return ""
     cleaned = text.strip()
-    # Убираем русский 'х', английский 'x', тире, прочерки и точки
     if cleaned.lower() in ["x", "х", "-", "—", ".", "окно", "нет"]:
         return ""
     return cleaned
@@ -17,7 +16,6 @@ def get_cell_value(sheet, row: int, col: int) -> str:
     if val is not None:
         return clean_dummy_markers(str(val))
 
-    # Если ячейка объединена с соседней
     for rng in sheet.merged_cells.ranges:
         if rng.min_row <= row <= rng.max_row and rng.min_col <= col <= rng.max_col:
             top_val = sheet.cell(row=rng.min_row, column=rng.min_col).value
@@ -63,6 +61,10 @@ def parse_week_schedule(group_name: str, week_num: int):
 
     schedule_data = []
     for day_full, day_short, start_row in DAYS_CONFIG:
+        # Проверяем первый столбец A: если там есть слово "лекции"
+        col_a_text = get_cell_value(sheet, start_row, 1).lower()
+        note = "Лекции" if "лекци" in col_a_text else ""
+
         pairs = {}
         for p in range(1, 9):
             row = start_row + (p - 1)
@@ -70,6 +72,7 @@ def parse_week_schedule(group_name: str, week_num: int):
 
         schedule_data.append({
             "name": day_short,
+            "note": note,
             "pairs": pairs
         })
 
