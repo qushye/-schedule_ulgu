@@ -5,6 +5,7 @@ import logging
 import asyncio
 import socket
 import sys
+from aiogram.client.telegram import TelegramAPIServer
 
 from datetime import datetime, timedelta
 
@@ -28,8 +29,9 @@ user_cooldowns = {}
 # Отключаем лишний мусор из логов, чтобы в консоли всё было чисто
 logging.basicConfig(level=logging.WARNING)
 
-session = AiohttpSession()
-session._connector_init["family"] = socket.AF_INET
+# Подключаем ваш личный шлюз Cloudflare (работает БЕЗ VPN)
+api_server = TelegramAPIServer.from_base("https://tg-proxy.kairagleb1910.workers.dev")
+session = AiohttpSession(api=api_server)
 
 bot = Bot(token=BOT_TOKEN, session=session)
 dp = Dispatcher()
