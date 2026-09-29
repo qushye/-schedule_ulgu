@@ -187,6 +187,15 @@ async def cmd_schedule(message: types.Message):
     group = settings["group"]
     theme = settings["theme"]
 
+    # --- ЗАПИСЬ АКТИВНОСТИ (В КОНСОЛЬ И В ФАЙЛ) ---
+    now_str = datetime.now().strftime("%d.%m %H:%M")
+    user_info = f"{message.from_user.first_name} (@{message.from_user.username})"
+    log_line = f"[{now_str}] 👤 {user_info} | Группа: {group} | Нажал: {message.text}"
+    print(log_line)
+    with open("data/activity.txt", "a", encoding="utf-8") as f:
+        f.write(log_line + "\n")
+    # ----------------------------------------------
+
     offset = 0 if message.text == "📅 Текущая неделя" else 1
     week_num, date_range, dates_list = get_week_info(offset_weeks=offset)
 
