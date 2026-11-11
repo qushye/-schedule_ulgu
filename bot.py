@@ -322,7 +322,7 @@ async def cmd_schedule(message: types.Message):
     offset = 0 if message.text == "📅 Текущая неделя" else 1
     week_num, date_range, dates_list = get_week_info(offset_weeks=offset)
 
-    await message.answer("⏳ Генерирую расписание...")
+    await bot.send_chat_action(chat_id=message.chat.id, action="upload_photo")
 
     data = parse_week_schedule(group, week_num, course=course)
     if not data:

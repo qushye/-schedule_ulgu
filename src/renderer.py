@@ -10,7 +10,19 @@ else:
         browser_executable="chromium",
         output_path=str(DATA_DIR),
         size=(1280, 720),
-        custom_flags=["--no-sandbox", "--disable-dev-shm-usage", "--disable-gpu"]
+        custom_flags=[
+            "--no-sandbox",
+            "--disable-dev-shm-usage",
+            "--disable-gpu",
+            "--disable-extensions",
+            "--disable-default-apps",
+            "--no-first-run",
+            "--disable-background-networking",
+            "--disable-sync",
+            "--disable-translate",
+            "--hide-scrollbars",
+            "--mute-audio"
+        ]
     )
 
 HTML_TEMPLATE = """
