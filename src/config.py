@@ -9,10 +9,23 @@ DATA_DIR = BASE_DIR / "data"
 DATA_DIR.mkdir(exist_ok=True)
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-ONEDRIVE_URL = os.getenv("ONEDRIVE_URL")
-
-EXCEL_PATH = DATA_DIR / "schedule.xlsx"
 USERS_FILE = DATA_DIR / "users.json"
+
+# Ссылки и пути для 1, 2 и 3 курсов
+COURSES = {
+    1: {
+        "url": "https://1drv.ms/x/c/23f9c7eacd40b733/IQCcTk5wK3aITJcV6Wu8zOMWASsHbN68cLtS5Q4qDTIxA5U",
+        "path": DATA_DIR / "schedule_1.xlsx"
+    },
+    2: {
+        "url": "https://1drv.ms/x/c/23f9c7eacd40b733/IQBvPHoK5DBJRLSuda7V6vwWATwKYJmjhu54yJN05jbdhaw",
+        "path": DATA_DIR / "schedule_2.xlsx"
+    },
+    3: {
+        "url": "https://1drv.ms/x/c/23f9c7eacd40b733/IQCQnbE4u12PSpHuz8m2MBhtAem43Sxvyrwmt_8h_S3Vo2M",
+        "path": DATA_DIR / "schedule_3.xlsx"
+    },
+}
 
 LESSON_TIMES = [
     (1, "8:00-9:20"),

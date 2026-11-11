@@ -1,7 +1,17 @@
+import sys
 from html2image import Html2Image
 from src.config import DATA_DIR, LESSON_TIMES
 
-hti = Html2Image(output_path=str(DATA_DIR), size=(1280, 720))
+# Автоматическая настройка под Windows (ПК) и Linux (Сервер)
+if sys.platform == "win32":
+    hti = Html2Image(output_path=str(DATA_DIR), size=(1280, 720))
+else:
+    hti = Html2Image(
+        browser_executable="chromium",
+        output_path=str(DATA_DIR),
+        size=(1280, 720),
+        custom_flags=["--no-sandbox", "--disable-dev-shm-usage", "--disable-gpu"]
+    )
 
 HTML_TEMPLATE = """
 <!DOCTYPE html>
@@ -156,8 +166,6 @@ def render_schedule_image(group_name: str, week_num: int, days_data, date_range:
     rows_html = ""
     for i, day in enumerate(days_data):
         d_date = dates_list[i] if i < len(dates_list) else ""
-
-        # Плашка "Лекции" под датой
         badge_html = f"<span class='day-badge'>{day['note']}</span>" if day.get("note") else ""
         cells = f"<td class='day-col'>{day['name']}<span class='day-date'>{d_date}</span>{badge_html}</td>"
 
@@ -180,6 +188,5 @@ def render_schedule_image(group_name: str, week_num: int, days_data, date_range:
 
     clean_group = group_name.replace("/", "_")
     filename = f"schedule_{clean_group}_{week_num}_{theme}.png"
-
     hti.screenshot(html_str=html, save_as=filename)
     return str(DATA_DIR / filename)

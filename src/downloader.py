@@ -1,14 +1,13 @@
 import logging
 import requests
-from src.config import ONEDRIVE_URL, EXCEL_PATH
+from pathlib import Path
+from src.config import COURSES
 
 logger = logging.getLogger(__name__)
 
-
-def download_schedule() -> bool:
+def download_single_file(url: str, output_path: Path) -> bool:
     try:
-        # Прямая ссылка на скачивание для OneDrive Consumer (заменяем параметры на принудительную отдачу)
-        download_url = ONEDRIVE_URL.replace("?e=", "?download=1&e=")
+        download_url = url.replace("?e=", "?download=1&e=")
         if "download=1" not in download_url:
             download_url += "&download=1" if "?" in download_url else "?download=1"
 
@@ -18,16 +17,23 @@ def download_schedule() -> bool:
 
         res = requests.get(download_url, headers=headers, allow_redirects=True, timeout=25)
 
-        # Проверяем сигнатуру настоящего ZIP/XLSX файла (первые 4 байта: 'PK\x03\x04')
         if res.status_code == 200 and res.content.startswith(b"PK\x03\x04"):
-            with open(EXCEL_PATH, "wb") as f:
+            with open(output_path, "wb") as f:
                 f.write(res.content)
-            logger.info("Настоящий Excel-файл успешно скачан из OneDrive!")
             return True
-        else:
-            logger.warning("OneDrive вернул не Excel-файл (вероятно, веб-интерфейс). Используем локальную копию.")
-            return False
-
-    except Exception as e:
-        logger.error(f"Исключение при скачивании из OneDrive: {e}")
         return False
+    except Exception as e:
+        logger.error(f"Ошибка при скачивании {output_path.name}: {e}")
+        return False
+
+def download_schedule() -> bool:
+    """Скачивает расписание для всех курсов (1, 2, 3)"""
+    all_ok = True
+    for course_num, info in COURSES.items():
+        ok = download_single_file(info["url"], info["path"])
+        if ok:
+            logger.info(f"Расписание {course_num} курса успешно скачано!")
+        else:
+            logger.warning(f"Не удалось обновить {course_num} курс, используем локальную копию.")
+            all_ok = False
+    return all_ok
