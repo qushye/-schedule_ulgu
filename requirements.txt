@@ -3,3 +3,4 @@ openpyxl>=3.1.2
 requests>=2.31.0
 html2image>=2.0.4
 python-dotenv>=1.0.0
+vkbottle>=3.0.0

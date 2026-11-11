@@ -84,11 +84,11 @@ def get_user_settings(user_id: int) -> dict:
     users = load_users()
     data = users.get(str(user_id), {})
     if isinstance(data, str):
-        return {"course": 1, "group": data, "theme": "dark"}
+        return {"course": 1, "group": data, "theme": "light"}
     return {
         "course": int(data.get("course", 1)),
         "group": data.get("group", "Ст-26/1а"),
-        "theme": data.get("theme", "dark")
+        "theme": data.get("theme", "light")
     }
 
 
@@ -97,7 +97,7 @@ def update_user_settings_bulk(user_id: int, updates: dict):
     uid = str(user_id)
     if uid not in users or isinstance(users[uid], str):
         current_group = users.get(uid, "Ст-26/1а") if isinstance(users.get(uid), str) else "Ст-26/1а"
-        users[uid] = {"course": 1, "group": current_group, "theme": "dark"}
+        users[uid] = {"course": 1, "group": current_group, "theme": "light"}
     users[uid].update(updates)
     save_users(users)
 

@@ -9,6 +9,8 @@ DATA_DIR = BASE_DIR / "data"
 DATA_DIR.mkdir(exist_ok=True)
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
+VK_USERS_FILE = DATA_DIR / "vk_users.json"
+VK_TOKEN = os.getenv("VK_TOKEN")
 USERS_FILE = DATA_DIR / "users.json"
 
 # Ссылки и пути для 1, 2 и 3 курсов
