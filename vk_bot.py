@@ -141,14 +141,19 @@ async def vk_payload_router(message: Message):
     data = extract_payload(message)
     user_id = message.from_id
 
+    # Если нажали обычную текстовую кнопку снизу (расписание)
     if not data:
         return await vk_text_fallback(message)
 
-    # Нажата "🎓 Сменить курс и группу"
+    # 1. Нажата "🎓 Сменить курс и группу"
     if data.get("action") == "change_course":
         return await message.answer("Выберите ваш курс:", keyboard=get_vk_course_keyboard())
 
-    # Нажата "🎨 Сменить тему"
+    # 2. Возврат в главное меню из выбора курса
+    if data.get("action") == "back_to_main":
+        return await message.answer("Главное меню:", keyboard=get_vk_main_keyboard())
+
+    # 3. Нажата "🎨 Сменить тему"
     if data.get("action") == "change_theme":
         settings = get_vk_user_settings(user_id)
         current = "🌙 Тёмная" if settings["theme"] == "dark" else "☀️ Светлая"
@@ -157,12 +162,12 @@ async def vk_payload_router(message: Message):
             keyboard=get_vk_theme_keyboard()
         )
 
-    # Нажата "⬅️ Назад в профиль"
+    # 4. Нажата "⬅️ Назад в профиль"
     if data.get("action") == "back_to_profile":
         settings = get_vk_user_settings(user_id)
         return await message.answer(build_vk_profile_text(settings), keyboard=get_vk_profile_keyboard())
 
-    # Выбран курс
+    # 5. Выбран курс
     if "course" in data:
         course = int(data["course"])
         groups = get_available_groups(course)
@@ -178,7 +183,7 @@ async def vk_payload_router(message: Message):
             keyboard=get_vk_group_keyboard(groups, course=course)
         )
 
-    # Выбрана конкретная группа
+    # 6. Выбрана конкретная группа
     if "set_group" in data:
         course = int(data.get("set_course", 1))
         group = data["set_group"]
@@ -193,7 +198,7 @@ async def vk_payload_router(message: Message):
             keyboard=get_vk_main_keyboard()
         )
 
-    # Выбрана тема
+    # 7. Выбрана тема
     if "set_theme" in data:
         theme = data["set_theme"]
         update_vk_user_settings(user_id, {"theme": theme})
