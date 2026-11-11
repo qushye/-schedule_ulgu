@@ -24,9 +24,8 @@ from src.keyboards import (
     get_theme_keyboard,
 )
 
-# Безопасный парсинг ADMIN_ID (защита от пустой строки в .env)
-raw_admin_id = os.getenv("ADMIN_ID", "1433828029")
-ADMIN_ID = int(raw_admin_id) if raw_admin_id and raw_admin_id.strip().isdigit() else 1433828029
+# Список всех твоих админских ID (работает с обоих аккаунтов)
+ADMIN_IDS = [1433828029, 932268347]
 
 ACTIVITY_LOG_FILE = DATA_DIR / "activity.txt"
 
@@ -43,14 +42,16 @@ dp = Dispatcher()
 
 user_cooldowns = {}
 
+
 def log_activity(text: str):
-    """Выводит действие в консоль и сохраняет по надежному пути DATA_DIR"""
+    """Выводит действие в консоль и сохраняет в data/activity.txt"""
     print(text)
     try:
         with open(ACTIVITY_LOG_FILE, "a", encoding="utf-8") as f:
             f.write(text + "\n")
     except Exception as e:
         logging.error(f"Не удалось записать лог активности: {e}")
+
 
 async def auto_update_loop():
     """Фоновое обновление файлов всех курсов каждые 4 часа"""
@@ -63,6 +64,7 @@ async def auto_update_loop():
         else:
             print(f"[{now}] ⚠️ Часть файлов не обновилась, используем локальные копии.\n")
 
+
 def load_users() -> dict:
     if USERS_FILE.exists():
         with open(USERS_FILE, "r", encoding="utf-8") as f:
@@ -72,9 +74,11 @@ def load_users() -> dict:
                 return {}
     return {}
 
+
 def save_users(users: dict):
     with open(USERS_FILE, "w", encoding="utf-8") as f:
         json.dump(users, f, ensure_ascii=False, indent=2)
+
 
 def get_user_settings(user_id: int) -> dict:
     users = load_users()
@@ -87,8 +91,8 @@ def get_user_settings(user_id: int) -> dict:
         "theme": data.get("theme", "dark")
     }
 
+
 def update_user_settings_bulk(user_id: int, updates: dict):
-    """Обновляет сразу несколько настроек за одну запись на диск"""
     users = load_users()
     uid = str(user_id)
     if uid not in users or isinstance(users[uid], str):
@@ -97,9 +101,11 @@ def update_user_settings_bulk(user_id: int, updates: dict):
     users[uid].update(updates)
     save_users(users)
 
+
 def is_user_registered(user_id: int) -> bool:
     users = load_users()
     return str(user_id) in users
+
 
 def get_week_info(offset_weeks=0):
     today = datetime.now() + timedelta(weeks=offset_weeks)
@@ -113,6 +119,7 @@ def get_week_info(offset_weeks=0):
     dates_list = [(mon + timedelta(days=i)).strftime("%d.%m") for i in range(6)]
     return week_num, date_range, dates_list
 
+
 def build_profile_text(settings: dict) -> str:
     theme_title = "🌙 Тёмная" if settings["theme"] == "dark" else "☀️ Светлая"
     return (
@@ -122,6 +129,7 @@ def build_profile_text(settings: dict) -> str:
         f"• Тема оформления: <b>{theme_title}</b>\n\n"
         f"<i>Что хотите настроить?</i>"
     )
+
 
 # ================= ХЭНДЛЕРЫ =================
 
@@ -150,14 +158,18 @@ async def cmd_start(message: types.Message):
             parse_mode="HTML"
         )
 
-@dp.message(F.text == "⚙️ Мой профиль и настройки")
+
+# Перехватываем и новую кнопку профиля, и старые кнопки у пользователей
+@dp.message(F.text.in_(["⚙️ Мой профиль и настройки", "👥 Сменить группу", "🎨 Сменить тему"]))
 async def cmd_profile(message: types.Message):
     settings = get_user_settings(message.from_user.id)
+    # Заодно принудительно обновляем нижнюю клавиатуру у пользователя
     await message.answer(
         build_profile_text(settings),
         reply_markup=get_profile_keyboard(),
         parse_mode="HTML"
     )
+
 
 @dp.callback_query(F.data == "back_to_profile")
 async def cq_back_to_profile(callback: types.CallbackQuery):
@@ -169,6 +181,7 @@ async def cq_back_to_profile(callback: types.CallbackQuery):
         parse_mode="HTML"
     )
 
+
 @dp.callback_query(F.data == "change_course_group")
 async def cq_change_course_group(callback: types.CallbackQuery):
     await callback.answer()
@@ -176,6 +189,7 @@ async def cq_change_course_group(callback: types.CallbackQuery):
         "Выберите курс:",
         reply_markup=get_course_selection_keyboard(show_back_to_profile=True)
     )
+
 
 @dp.callback_query(F.data == "change_theme")
 async def cq_change_theme(callback: types.CallbackQuery):
@@ -188,6 +202,7 @@ async def cq_change_theme(callback: types.CallbackQuery):
         parse_mode="HTML"
     )
 
+
 @dp.callback_query(F.data == "back_to_courses")
 async def cq_back_to_courses(callback: types.CallbackQuery):
     await callback.answer()
@@ -195,6 +210,7 @@ async def cq_back_to_courses(callback: types.CallbackQuery):
         "Выберите курс:",
         reply_markup=get_course_selection_keyboard(show_back_to_profile=True)
     )
+
 
 @dp.callback_query(F.data.startswith("setcourse:"))
 async def cq_set_course(callback: types.CallbackQuery):
@@ -218,6 +234,7 @@ async def cq_set_course(callback: types.CallbackQuery):
         parse_mode="HTML"
     )
 
+
 @dp.callback_query(F.data.startswith("setgroup:"))
 async def cq_set_group(callback: types.CallbackQuery):
     await callback.answer()
@@ -225,7 +242,6 @@ async def cq_set_group(callback: types.CallbackQuery):
     course = int(parts[1]) if len(parts) == 3 else 1
     group = parts[2] if len(parts) == 3 else parts[1]
 
-    # Пакетное сохранение курса и группы за одну операцию ввода-вывода
     update_user_settings_bulk(callback.from_user.id, {"course": course, "group": group})
 
     now = datetime.now().strftime("%d.%m %H:%M")
@@ -239,6 +255,7 @@ async def cq_set_group(callback: types.CallbackQuery):
         reply_markup=get_main_keyboard(),
         parse_mode="HTML"
     )
+
 
 @dp.callback_query(F.data.startswith("settheme:"))
 async def cq_set_theme(callback: types.CallbackQuery):
@@ -258,22 +275,40 @@ async def cq_set_theme(callback: types.CallbackQuery):
         parse_mode="HTML"
     )
 
+
+# Обработка команды /update и старой кнопки "Обновить файл"
+@dp.message(F.text == "🔄 Обновить файл")
 @dp.message(Command("update"))
 async def cmd_admin_update(message: types.Message):
-    if message.from_user.id != ADMIN_ID:
+    if message.from_user.id not in ADMIN_IDS:
+        await message.answer(
+            f"⛔ Доступ запрещён.\nВаш ID: <code>{message.from_user.id}</code>\n"
+            f"Автоматическое обновление работает каждые 4 часа.",
+            parse_mode="HTML"
+        )
         return
 
     await message.answer("⏳ Обновляю файлы 1, 2 и 3 курса из OneDrive...")
     if download_schedule():
-        await message.answer("✅ Таблицы всех курсов успешно скачаны и обновлены!")
+        await message.answer("✅ Таблицы всех курсов успешно скачаны и обновлены!", reply_markup=get_main_keyboard())
     else:
-        await message.answer("⚠️ Не все файлы удалось скачать, проверьте логи сервера.")
+        await message.answer("⚠️ Не все файлы удалось скачать, проверьте консоль сервера.",
+                             reply_markup=get_main_keyboard())
+
 
 @dp.message(F.text.in_(["📅 Текущая неделя", "⏭ Следующая неделя"]))
 async def cmd_schedule(message: types.Message):
     user_id = message.from_user.id
-    now_ts = time.time()
 
+    # Если пользователь еще не выбрал группу, не шлем ему случайное расписание
+    if not is_user_registered(user_id):
+        await message.answer(
+            "👋 Вы ещё не выбрали свой курс и группу!\nПожалуйста, выберите ваш курс:",
+            reply_markup=get_course_selection_keyboard(show_back_to_profile=False)
+        )
+        return
+
+    now_ts = time.time()
     if now_ts - user_cooldowns.get(user_id, 0) < 4:
         await message.answer("⏳ Подождите пару секунд, картинка уже формируется...")
         return
@@ -291,17 +326,23 @@ async def cmd_schedule(message: types.Message):
 
     data = parse_week_schedule(group, week_num, course=course)
     if not data:
-        await message.answer("❌ Не найдены данные для вашей группы. Проверьте настройки в «⚙️ Мой профиль и настройки».")
+        await message.answer(
+            "❌ Не найдены данные для вашей группы. Проверьте настройки в «⚙️ Мой профиль и настройки».")
         return
 
     img_path = render_schedule_image(group, week_num, data, date_range, dates_list, theme=theme)
+
+    # Отправляем фото и обновляем нижнюю клавиатуру на актуальную
     await message.answer_photo(
         photo=FSInputFile(img_path),
-        caption=f"Расписание для {group} ({course} курс, {date_range})"
+        caption=f"Расписание для {group} ({course} курс, {date_range})",
+        reply_markup=get_main_keyboard()
     )
 
     tag = f"@{message.from_user.username}" if message.from_user.username else f"ID: {message.from_user.id}"
-    log_activity(f"[{datetime.now().strftime('%d.%m %H:%M')}] 👤 {message.from_user.first_name} ({tag}) | {course}к {group} | {message.text}")
+    log_activity(
+        f"[{datetime.now().strftime('%d.%m %H:%M')}] 👤 {message.from_user.first_name} ({tag}) | {course}к {group} | {message.text}")
+
 
 async def main():
     now = datetime.now().strftime("%d.%m.%Y %H:%M:%S")
@@ -314,6 +355,7 @@ async def main():
     print("=" * 60 + "\n")
 
     await dp.start_polling(bot, drop_pending_updates=True)
+
 
 if __name__ == "__main__":
     asyncio.run(main())
