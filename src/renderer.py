@@ -2,14 +2,14 @@ import sys
 from html2image import Html2Image
 from src.config import DATA_DIR, LESSON_TIMES
 
-# Автоматическая настройка под Windows (ПК) и Linux (Сервер)
+# Размер 1280x800 дает запас по высоте, чтобы суббота с длинными парами не обрезалась
 if sys.platform == "win32":
-    hti = Html2Image(output_path=str(DATA_DIR), size=(1280, 720))
+    hti = Html2Image(output_path=str(DATA_DIR), size=(1280, 800))
 else:
     hti = Html2Image(
         browser_executable="chromium",
         output_path=str(DATA_DIR),
-        size=(1280, 720),
+        size=(1280, 800),
         custom_flags=[
             "--no-sandbox",
             "--disable-dev-shm-usage",
@@ -63,7 +63,7 @@ HTML_TEMPLATE = """
 
     html, body {{
         margin: 0;
-        padding: 14px 18px;
+        padding: 12px 16px;
         background-color: var(--bg-color);
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
         color: var(--text-main);
@@ -76,20 +76,20 @@ HTML_TEMPLATE = """
         display: flex;
         justify-content: space-between;
         align-items: center;
-        font-size: 20px;
+        font-size: 19px;
         font-weight: 700;
-        margin-bottom: 10px;
+        margin-bottom: 8px;
         padding: 0 4px;
-        height: 32px;
+        height: 30px;
     }}
     .bot-name {{
         color: var(--text-muted);
         font-weight: 500;
-        font-size: 16px;
+        font-size: 15px;
     }}
     table {{
         width: 100%;
-        height: calc(100% - 42px);
+        height: calc(100% - 38px);
         border-collapse: collapse;
         table-layout: fixed;
     }}
@@ -97,14 +97,14 @@ HTML_TEMPLATE = """
         border: 1px solid var(--border-color);
         text-align: center;
         vertical-align: middle;
-        padding: 4px 6px;
+        padding: 3px 4px; /* Плотные отступы ячеек */
     }}
     th {{
         background-color: var(--header-bg);
         color: var(--text-muted);
-        font-size: 14px;
+        font-size: 13px;
         font-weight: 600;
-        height: 48px;
+        height: 44px;
     }}
     th span {{
         display: block;
@@ -114,14 +114,14 @@ HTML_TEMPLATE = """
         margin-top: 2px;
     }}
     .day-col {{
-        width: 78px;
+        width: 76px;
         font-weight: 700;
         background-color: var(--header-bg);
-        font-size: 17px;
+        font-size: 16px;
         color: var(--text-main);
     }}
     .day-date {{
-        font-size: 12px;
+        font-size: 11.5px;
         font-weight: normal;
         color: var(--text-muted);
         display: block;
@@ -129,19 +129,19 @@ HTML_TEMPLATE = """
     }}
     .day-badge {{
         display: inline-block;
-        font-size: 10px;
+        font-size: 9.5px;
         font-weight: 600;
         color: var(--accent);
         background-color: var(--badge-bg);
         border: 1px solid var(--badge-border);
         border-radius: 4px;
-        padding: 2px 5px;
-        margin-top: 4px;
+        padding: 2px 4px;
+        margin-top: 3px;
         line-height: 1.1;
     }}
     .cell-content {{
-        font-size: 12.5px;
-        line-height: 1.35;
+        font-size: 11.5px; /* Компактный шрифт для длинных клинических предметов */
+        line-height: 1.22;
         color: var(--text-cell);
         word-wrap: break-word;
         white-space: pre-wrap;
@@ -171,6 +171,21 @@ HTML_TEMPLATE = """
 """
 
 
+def to_clean_filename(group_name: str) -> str:
+    """Переводит русские буквы группы в понятную латиницу: Ст-25/10б -> St-25_10b"""
+    translit = {
+        "Ст": "St", "ст": "st",
+        "а": "a", "А": "A",
+        "б": "b", "Б": "B",
+        "в": "v", "В": "V",
+        "/": "_"
+    }
+    result = group_name
+    for ru, en in translit.items():
+        result = result.replace(ru, en)
+    return result
+
+
 def render_schedule_image(group_name: str, week_num: int, days_data, date_range: str, dates_list: list,
                           theme: str = "dark") -> str:
     header_cols = "".join([f"<th>{num}<span>{time}</span></th>" for num, time in LESSON_TIMES])
@@ -198,7 +213,8 @@ def render_schedule_image(group_name: str, week_num: int, days_data, date_range:
         table_rows=rows_html
     )
 
-    clean_group = group_name.replace("/", "_")
+    clean_group = to_clean_filename(group_name)
     filename = f"schedule_{clean_group}_{week_num}_{theme}.png"
+
     hti.screenshot(html_str=html, save_as=filename)
     return str(DATA_DIR / filename)

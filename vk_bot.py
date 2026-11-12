@@ -1,5 +1,7 @@
+import os
 import json
 import logging
+import asyncio
 import time
 from datetime import datetime, timedelta
 
@@ -106,6 +108,18 @@ def extract_payload(message: Message) -> dict:
         except Exception:
             return {}
     return {}
+
+async def upload_vk_photo_safe(img_path: str, peer_id: int):
+    """Безопасная загрузка фото в ВК: передаёт байты и делает до 3 попыток при сбоях серверов ВК"""
+    for attempt in range(3):
+        try:
+            with open(img_path, "rb") as f:
+                photo_bytes = f.read()
+            return await uploader.upload(photo_bytes, peer_id=peer_id)
+        except Exception as e:
+            logging.warning(f"Попытка {attempt + 1} загрузки в ВК не удалась: {e}")
+            await asyncio.sleep(0.4)
+    return None
 
 # ================= ХЭНДЛЕРЫ ВК =================
 
@@ -223,6 +237,8 @@ async def vk_text_fallback(message: Message):
             keyboard=get_vk_course_keyboard()
         )
 
+    start_time = time.time()
+
     now_ts = time.time()
     if now_ts - user_cooldowns.get(user_id, 0) < 4:
         return await message.answer("⏳ Подождите пару секунд, картинка уже формируется...")
@@ -242,15 +258,22 @@ async def vk_text_fallback(message: Message):
 
     img_path = render_schedule_image(group, week_num, data, date_range, dates_list, theme=theme)
 
-    photo = await uploader.upload(img_path, peer_id=message.peer_id)
+    photo = await upload_vk_photo_safe(img_path, peer_id=message.peer_id)
+    if not photo:
+        return await message.answer(
+            "⚠️ Временный сбой серверов ВКонтакте при загрузке фото. Пожалуйста, нажмите кнопку ещё раз.",
+            keyboard=get_vk_main_keyboard()
+        )
+
     await message.answer(
         message=f"Расписание для {group} ({course} курс, {date_range})",
         attachment=photo,
         keyboard=get_vk_main_keyboard()
     )
 
-    now_str = datetime.now().strftime("%d.%m %H:%M")
-    log_vk_activity(f"[{now_str}] 👤 VK id{user_id} | {course}к {group} | {text}")
+    elapsed = round(time.time() - start_time, 2)
+    now_str = datetime.now().strftime("%d.%m %H:%M:%S")
+    log_vk_activity(f"[{now_str}] 👤 VK id{user_id} | {course}к {group} | {text} (⏱ {elapsed} сек)")
 
 if __name__ == "__main__":
     print("⏳ Проверяем файлы расписания...")
