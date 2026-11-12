@@ -109,17 +109,21 @@ def extract_payload(message: Message) -> dict:
             return {}
     return {}
 
-async def upload_vk_photo_safe(img_path: str, peer_id: int):
-    """Безопасная загрузка фото в ВК: передаёт байты и делает до 3 попыток при сбоях серверов ВК"""
-    for attempt in range(3):
+
+async def upload_vk_photo_safe(img_path: str, peer_id: int) -> str | None:
+    """Безопасная загрузка фото в ВК с повторными попытками при сбоях."""
+    max_attempts = 3
+    for attempt in range(max_attempts):
         try:
-            with open(img_path, "rb") as f:
-                photo_bytes = f.read()
-            return await uploader.upload(photo_bytes, peer_id=peer_id)
+            return await uploader.upload(img_path, peer_id=peer_id)
         except Exception as e:
             logging.warning(f"Попытка {attempt + 1} загрузки в ВК не удалась: {e}")
-            await asyncio.sleep(0.4)
+            if attempt < max_attempts - 1:
+                await asyncio.sleep(0.5 * (attempt + 1))
+
+    logging.error(f"Не удалось загрузить {img_path} для peer_id={peer_id} после {max_attempts} попыток.")
     return None
+
 
 # ================= ХЭНДЛЕРЫ ВК =================
 
